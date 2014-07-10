@@ -85,7 +85,7 @@ def init_db():
 		# not on an app with MongoHQ, try localhost
 		conn = pymongo.Connection('localhost', 27017)
 		app.logger.debug('got localhost connection to mongo' )	
-		db = conn['leaderboard-db']
+		db = conn['leaderboard-db3']
 
 
 	return db
@@ -168,17 +168,19 @@ def images_like():
 		app.logger.debug('updating in db' )
 		app.logger.debug(key)
 
-		try:			
-			count = key.count #['count']
-		except:			
-			count = count + 1
+		count = key['count']
+		count = count + 1
 
-		try:
-			datelist = key.date_list #['date_list']
-		except:
-			datelist = [datetime.datetime.utcnow()]
+		# TODO: 
+		# try:			
+		# except:			
+		# 	
 
+		# try:
+		# except:
+		# 	datelist = [datetime.datetime.utcnow()]
 
+		datelist = key['date_list']
 		datelist.append(datetime.datetime.utcnow())
 
 		like_id = likes.update(
