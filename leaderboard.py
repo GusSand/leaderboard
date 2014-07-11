@@ -45,7 +45,7 @@ import datetime
 
 
 app = Flask(__name__)
-app.debug = True
+#app.debug = True
 
 
 
@@ -139,19 +139,15 @@ def images_like():
 
 
 	#everything ok, let's do work
-	
 	db = get_db()
 	likes = db['likes']
 	count = 1
 
 	# check to see if this exists in the db and how many likes it has
-	#key = likes.find_one( { "image_id" : image, likes.count: { '$exists': True }})
-	#TODO
 	key = likes.find_one( { "image_id" : image} )
 
-
 	if (key is None):
-
+		# first time seen
 		app.logger.debug('inserting new entry in db' )
 
 		like = {
@@ -160,29 +156,24 @@ def images_like():
 			'date_list' : [datetime.datetime.utcnow()],
 			'count' : count	
 		}	
+
+		# since first time seen, we insert in the db
 		like_id = likes.insert(like)
 		app.logger.debug('inserted in db' )
 
 	else:
-
+		# we have seen this image id before
 		app.logger.debug('updating in db' )
 		app.logger.debug(key)
 
 		count = key['count']
 		count = count + 1
 
-		# TODO: 
-		# try:			
-		# except:			
-		# 	
-
-		# try:
-		# except:
-		# 	datelist = [datetime.datetime.utcnow()]
-
+		# add at the end of the list of dates
 		datelist = key['date_list']
 		datelist.append(datetime.datetime.utcnow())
 
+		# update the entry in the db
 		like_id = likes.update(
 				{ 	'image_id' : image, }, 
 				{
@@ -201,9 +192,85 @@ def images_like():
 
 
 	
+###
+###	Unliking an Image
+### 
+@app.route("/api/images/unlike", methods=['POST'])
+def images_unlike():
+	app.logger.debug('Entered images_unlike. Payload: ' )
+
+	error = None
+	json = request.get_json()
+
+	app.logger.debug("json:")
+	app.logger.debug(json)
+
+	# First validate all the payload & params
+	if (json == None):
+		error = 'invalid payload'
+		return Response(status=400, response=error)
+
+	image = json.get('image')	
+	if (image == None):
+		error = 'invalid image id'
+		return Response(status=400, response=error)
+
+	user  = request.get_json().get('user')
+	if (user == None):
+		error = 'invalid user id'
+		return Response(status=400, response=error)
+
+
+	#everything ok, let's do work
+	db = get_db()
+	likes = db['likes']
+
+	# check to see if this exists in the db if it doesn't 
+	# we will return HTTP 304 not modified
+	key = likes.find_one( { "image_id" : image} )
+	if (key is None):
+		error = 'not modified'
+		return Response(status=304, response=error)
+
+	count = key['count']
+	count = count - 1
+
+	if (count == 0):
+		# we need to remove the entry for the image
+		app.logger.debug('removing entry for ' + image )
+
+		likes.remove({'image_id' : image})
+
+	else:
+		# we just need to decrease the likes
+		app.logger.debug('decreasing the likes for ' + image)
+
+		#remove the last date
+		datelist = key['date_list']
+		datelist.pop()
+
+		# update in the db
+		like_id = likes.update(
+				{ 	'image_id' : image, }, 
+				{
+					'image_id' : image, 
+					'user_id'  : user, 
+					'date_list' : datelist,
+					'count' : count					
+				}, 
+			)
+
+		app.logger.debug('updated in db' )
+
+
+	resp = jsonify(image_id=image, image_count=count)
+	return resp
+
+
 
 ###
-###	Route Unliking an Image
+###	Route for getting the leaderboard or statistics for images
+### 
 ### 
 @app.route("/api/images/leaderboard", methods=['GET'])
 def images_leaderboard():
@@ -226,25 +293,6 @@ def images_leaderboard():
 		abort(400)
 
 
-###
-###	Destroy or Unliking an Image
-### 
-@app.route("/api/images/unlike", methods=['POST'])
-def images_unlike():
-	app.logger.debug('Entered images_unlike. Payload: ' )
-	app.logger.debug(request.get_json())
-
-	try:
-
-
-		return 'ok'
-
-
-	except:
-		app.logger.debug('Server Error' )
-		abort(500)
-
-
 
 
 
@@ -259,5 +307,5 @@ def hello():
 ##
 ## So that we can run it in the localhost
 if __name__ == '__main__':
-	app.run(debug=True)
-	#app.run()
+	#app.run(debug=True)
+	app.run()

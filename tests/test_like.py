@@ -22,25 +22,22 @@ class LeaderboardTestCase(unittest.TestCase):
 
 
 
-
-	##
-	## simple test for unlike
-	#def test_unlike(self):
+	
 
 	##
 	## test repeated likes
-	def test_multiple_like(self):
+	def test_like_multiple_like(self):
 
 		image_id = random.randint(1, sys.maxint)
 		mydata = json.dumps({'image':image_id, 'user':'123456'})
 		
 		for x in range (0, 3):
-			resp = self.app.post('/api/images/like', 
+			resp = self.app.post(self.LIKE_API, 
 				data = mydata, 
 				content_type = self.JSON)
 
 
-		print str(resp.data)
+		#print str(resp.data)
 		jdata = json.loads(resp.data)
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(jdata['image_count'], 3)
@@ -52,25 +49,25 @@ class LeaderboardTestCase(unittest.TestCase):
 	def test_like(self):
 
 		mydata = json.dumps({'image':'123444', 'user':'2345666'})
-		resp = self.app.post('/api/images/like', 
+		resp = self.app.post(self.LIKE_API, 
 			data = mydata, 
 			content_type = self.JSON)
 
-		print str(resp.data)
+		#print str(resp.data)
 		self.assertEqual(resp.status_code, 200)
 		#assert (rv.status_code == 200)
 
 
 	#
 	# Test for passing invalid image id on the payload
-	def test_invalid_image(self):
+	def test_like_invalid_image(self):
 		mydata = json.dumps({'user':'2345'})
-		resp = self.app.post('api/images/like', 
+		resp = self.app.post(self.LIKE_API, 
 			data = mydata, 
 			content_type = self.JSON)
 
 		# Response should return a 400
-		print ('Error: ' + str(resp.data))
+		#print ('Error: ' + str(resp.data))
 		assert 'invalid image' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
@@ -78,18 +75,16 @@ class LeaderboardTestCase(unittest.TestCase):
 	##
 	## Test when we don't pass any params. 
 	## We should pass image & user
-	def test_invalid_payload(self):
-		#assert self.app != None
-		#self.app = leaderboard.app.test_client()
+	def test_like_invalid_payload(self):
 		
-		resp = self.app.post('/api/images/like')
+		resp = self.app.post(self.LIKE_API)
 	
 		# Response should return a 400
-		print ('Error: ' + str(resp.data))
+		#print ('Error: ' + str(resp.data))
 		assert 'invalid payload' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
 
 
 if __name__ == '__main__':
-	unittest.main()
+	unittest.main(verbosity =2)
