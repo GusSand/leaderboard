@@ -115,27 +115,23 @@ def server_error():
 @app.route("/api/images/like", methods=['POST'])
 def images_like():
 	
-	error = None
 	app.logger.debug('Entered images_like. Payload: ' )
 	json = request.get_json()
 
 	app.logger.debug("json:")
 	app.logger.debug(json)
 
-	# First validate all the payload
+	# First validate all the payload & params
 	if (json == None):
-		error = 'invalid payload'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid payload')
 
 	image = json.get('image')	
 	if (image == None):
-		error = 'invalid image id'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid image id')
 
 	user  = request.get_json().get('user')
 	if (user == None):
-		error == 'invalid user id'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid user id')
 
 
 	#everything ok, let's do work
@@ -199,7 +195,6 @@ def images_like():
 def images_unlike():
 	app.logger.debug('Entered images_unlike. Payload: ' )
 
-	error = None
 	json = request.get_json()
 
 	app.logger.debug("json:")
@@ -207,18 +202,15 @@ def images_unlike():
 
 	# First validate all the payload & params
 	if (json == None):
-		error = 'invalid payload'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid payload')
 
 	image = json.get('image')	
 	if (image == None):
-		error = 'invalid image id'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid image id')
 
 	user  = request.get_json().get('user')
 	if (user == None):
-		error = 'invalid user id'
-		return Response(status=400, response=error)
+		return Response(status=400, response='invalid user id')
 
 
 	#everything ok, let's do work
@@ -237,13 +229,13 @@ def images_unlike():
 
 	if (count == 0):
 		# we need to remove the entry for the image
-		app.logger.debug('removing entry for ' + image )
+		app.logger.debug('removing entry for ' + str(image) )
 
 		likes.remove({'image_id' : image})
 
 	else:
 		# we just need to decrease the likes
-		app.logger.debug('decreasing the likes for ' + image)
+		app.logger.debug('decreasing the likes for ' + str(image))
 
 		#remove the last date
 		datelist = key['date_list']
@@ -270,28 +262,68 @@ def images_unlike():
 
 ###
 ###	Route for getting the leaderboard or statistics for images
+### The API should provide a means of querying for ranked list of the top
+### K images that have received the most likes in the following time periods: 
+### last 24 hours, 36 hours, 1 week, 1 month, and 1 year.
 ### 
-### 
+### response:
+#   {
+#    "likes": [ 
+#	 	{
+# 			"image_id": "12", 
+# 			"count"	  : 100
+# 		}, 
+# 		{
+# 			"image_id": "1234", 
+# 			"count"   : 12
+# 		}
+# 	  ] 
+# 	}
+###
+###
+###	
+
 @app.route("/api/images/leaderboard", methods=['GET'])
 def images_leaderboard():
 	app.logger.debug('Entered images_leaderboard. Payload: ' )
-	app.logger.debug(request.get_json())
+
+	args = request.args.to_dict()
+	app.logger.debug(args)
+
+
+	
+	# First validate all the payload & params
+	if (len(args) == 0):
+		return Response(status=400, response='invalid payload')
+
+	period = args.get('period', '')
+	if (period == None or period not in ['24hrs', '36hrs', 'week', 'month', 'year']):
+		return Response(status=400, response='invalid period. Valid are 24hrs, 36hrs, week, month, year')
+
+
+	k = args.get('k', '')
 
 	try:
-		
-		db = get_db()
-		likes = db.likes.find_one()
+		n = int(k)
+	except Exception, e:
+		return Response(status=400, response=k + 'is an invalid count. Max is 100')
+	
+	if (n == None or n < 0 or n > 100):
+		return Response(status=400, response=k + 'is an invalid count. Max is 100')
 
-		#data = db.collection_names()
-		#app.logger.debug(data)
-
-		return str(likes) #jsonify(username=g.user.username)
+	
+	# period can be day, dayhalf, week, month, year
 
 
-	except:
-		app.logger.debug('Server Error' )
-		abort(400)
+	#print sent
+	
+	#db = get_db()
+	#likes = db.likes.find_one()
 
+	#data = db.collection_names()
+	#app.logger.debug(data)
+
+	return 'ok'
 
 
 

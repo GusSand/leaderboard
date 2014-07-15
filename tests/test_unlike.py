@@ -1,7 +1,9 @@
 import unittest
 import os
+import sys
 import leaderboard
 from flask import json, jsonify
+import random
 
 class UnlikeTestCase(unittest.TestCase):
 
@@ -23,7 +25,61 @@ class UnlikeTestCase(unittest.TestCase):
 	# 3. remove from the db
 	# 4. decrease count
 
-	#def test_unlike_decrease_count(self):
+	def test_unlike_decrease_count(self):
+
+		# first like the image multiple times
+		image_id = random.randint(1, sys.maxint)
+		mydata = json.dumps({'image':image_id, 'user':'123456'})
+		
+		for x in range (0, 3):
+			resp = self.app.post(self.LIKE_API, 
+				data = mydata, 
+				content_type = self.JSON)
+
+		#print str(resp.data)
+		jdata = json.loads(resp.data)
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(jdata['image_count'], 3)
+
+
+		# now unlike once and make sure it's only two
+		unlikedata = json.dumps({'image':image_id, 'user':'5678'})
+		resp = self.app.post(self.UNLIKE_API, 
+			data = unlikedata, 
+			content_type = self.JSON)
+
+		self.assertEqual(resp.status_code, 200)
+		#print str(resp.data)
+		jdata = json.loads(resp.data)
+		self.assertEqual(jdata['image_count'], 2)
+
+	# to test this case we are gonna like
+	# an image once and then unlike it right 
+	# away. to assure there is no collisions
+	# we will use a random imageid
+	def test_unlike_remove_from_db(self):
+		
+		# first like the image and make sure its only once
+		image_id = random.randint(1, sys.maxint)
+		mydata = json.dumps({'image':image_id, 'user':'5678'})
+		likeresp = self.app.post(self.LIKE_API, 
+			data = mydata, 
+			content_type = self.JSON)
+		self.assertEqual(likeresp.status_code, 200)
+		jdata = json.loads(likeresp.data)
+		self.assertEqual(jdata['image_count'], 1)
+
+		# now finally unlike
+		unlikedata = json.dumps({'image':image_id, 'user':'5678'})
+		resp = self.app.post(self.UNLIKE_API, 
+			data = unlikedata, 
+			content_type = self.JSON)
+
+		self.assertEqual(resp.status_code, 200)
+		#print str(resp.data)
+		jdata = json.loads(resp.data)
+		self.assertEqual(jdata['image_count'], 0)
+
 
 
 
