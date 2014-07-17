@@ -15,10 +15,10 @@ class LeaderboardTestCase(unittest.TestCase):
 
 
 	def setUp(self):
-			self.app = leaderboard.app.test_client()
-			assert self.app != None
-			#self.app.config['TESTING'] = True
-			leaderboard.init_db()
+		self.app = leaderboard.app.test_client()
+		assert self.app != None
+		#self.app.config['TESTING'] = True
+		leaderboard.init_db()
 
 
 	#tests:
@@ -29,51 +29,38 @@ class LeaderboardTestCase(unittest.TestCase):
 	# 7. year
 
 
-
-
-
-	def test_get_top_k_likes_where_k_greater_than_count(self):
-
-		resp = self.app.get('api/images/leaderboard?period=24hrs&k=50')
-		print resp.data
+	def test_get_top_k_likes(self):
+		resp = self.app.get('api/images/leaderboard?period=year&k=3')
 		self.assertEqual(resp.status_code, 200)
-
 		#jdata = json.loads(resp.data)
 		#self.assertEqual(jdata[''])
 
-	##
-	## test for passing not invalid period 
-	## allowed are: ['24hrs', '36hrs', 'week', 'month', 'year']
-	def test_leaderboard_invalid_count(self):
 
-		resp = self.app.get('api/images/leaderboard?period=24hrs&k=dddd')
-		print resp.data
+	# test for passing an invalid count. Valid is up to 1000
+	# Expect 400. 
+	def test_leaderboard_invalid_count(self):
+		resp = self.app.get('api/images/leaderboard?period=year&k=101')
 		assert 'invalid count' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
 
-	##
-	## test for passing not invalid period 
-	## allowed are: ['24hrs', '36hrs', 'week', 'month', 'year']
+	# test for passing an invalid period 
+	# allowed are: ['24hrs', '36hrs', 'week', 'month', 'year']
+	# Expect 400. 
 	def test_leaderboard_invalid_period(self):
-
 		resp = self.app.get('api/images/leaderboard?period=days')
-		print resp.data
 		assert 'invalid period' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
-	##
-	## Test when invalid payloar
+
+	# Test when invalid payload.
+	# Expect 400. 
 	def test_leaderboard_invalid_payload(self):
-
 		resp = self.app.get('api/images/leaderboard')
-
-		print resp.data
 		assert 'invalid payload' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
 
-
 if __name__ == '__main__':
-	unittest.main(verbosity =2)
+	unittest.main(verbosity =1)
 

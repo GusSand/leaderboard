@@ -41,13 +41,14 @@ import pymongo
 from flask import Flask, request, session, g, abort, make_response, Response, json, jsonify
 from urlparse import urlparse
 import datetime
+from datetime import timedelta
 
 
-
+# the main app. 
+# comment or uncomment the debug = true for getting debug logging
+# while running on local host of the unit tests. 
 app = Flask(__name__)
 #app.debug = True
-
-
 
 
 
@@ -62,39 +63,26 @@ app = Flask(__name__)
 ## Opens a new db connection if there's none for the current app context
 ## 
 def get_db():
-	app.logger.debug('Entered: get_db' )
+	#app.logger.debug('Entered: get_db' )
 	if not hasattr(g, 'mongo_db'):
 		g.mongo_db = init_db()
 	return g.mongo_db
 
 ##
 ## Connects to the actual db
-##
+## First tries the one in heroku then localhost
 def init_db():
-	app.logger.debug('Entered: init_db' )
+	#app.logger.debug('Entered: init_db' )
 	mongo_url = os.environ.get('MONGOHQ_URL')
-
-
 	if mongo_url:
-		# first try to see if we are running under heroku
 		conn = pymongo.Connection(mongo_url)
-		app.logger.debug('got heroku connection to mongo' )
+		# app.logger.debug('got heroku connection to mongo' )
 		db = conn[urlparse(mongo_url).path[1:]]
-
 	else:
-		# not on an app with MongoHQ, try localhost
 		conn = pymongo.Connection('localhost', 27017)
-		app.logger.debug('got localhost connection to mongo' )	
+		# app.logger.debug('got localhost connection to mongo' )	
 		db = conn['leaderboard-db3']
-
-
 	return db
-
-# TODO: teardown connections
-#@app.teardown_appcontext
-#def close_db(error):
-#	if hasattr(g, 'mongo_db'):
-		#g.mongo_db.close()
 
 
 ###############################################################
@@ -124,15 +112,12 @@ def images_like():
 	# First validate all the payload & params
 	if (json == None):
 		return Response(status=400, response='invalid payload')
-
 	image = json.get('image')	
 	if (image == None):
 		return Response(status=400, response='invalid image id')
-
 	user  = request.get_json().get('user')
 	if (user == None):
 		return Response(status=400, response='invalid user id')
-
 
 	#everything ok, let's do work
 	db = get_db()
@@ -194,20 +179,16 @@ def images_like():
 @app.route("/api/images/unlike", methods=['POST'])
 def images_unlike():
 	app.logger.debug('Entered images_unlike. Payload: ' )
-
 	json = request.get_json()
-
 	app.logger.debug("json:")
 	app.logger.debug(json)
 
 	# First validate all the payload & params
 	if (json == None):
 		return Response(status=400, response='invalid payload')
-
 	image = json.get('image')	
 	if (image == None):
 		return Response(status=400, response='invalid image id')
-
 	user  = request.get_json().get('user')
 	if (user == None):
 		return Response(status=400, response='invalid user id')
@@ -230,7 +211,6 @@ def images_unlike():
 	if (count == 0):
 		# we need to remove the entry for the image
 		app.logger.debug('removing entry for ' + str(image) )
-
 		likes.remove({'image_id' : image})
 
 	else:
@@ -289,8 +269,6 @@ def images_leaderboard():
 
 	args = request.args.to_dict()
 	app.logger.debug(args)
-
-
 	
 	# First validate all the payload & params
 	if (len(args) == 0):
@@ -300,33 +278,49 @@ def images_leaderboard():
 	if (period == None or period not in ['24hrs', '36hrs', 'week', 'month', 'year']):
 		return Response(status=400, response='invalid period. Valid are 24hrs, 36hrs, week, month, year')
 
-
 	k = args.get('k', '')
-
 	try:
 		n = int(k)
+		if (n == None or n < 0 or n > 100):
+			raise Exception()
 	except Exception, e:
 		return Response(status=400, response=k + 'is an invalid count. Max is 100')
 	
-	if (n == None or n < 0 or n > 100):
-		return Response(status=400, response=k + 'is an invalid count. Max is 100')
+	# Everything ok, let's do some work
+	db = get_db()
 
-	
-	# period can be day, dayhalf, week, month, year
+	# here we compute the appropiate period and ask from the database for the top likes in the daterange required
+	targetdate = datetime.datetime.utcnow() - gettimedelta(period)
+	cursor_likes = db.likes.find({"date_list" : {"$lt": targetdate}}).sort('count', pymongo.DESCENDING).limit(n)
+	#app.logger.debug("like_list")
+	likes = []
+	for doc in cursor_likes :
+		#app.logger.debug(doc)
+		like = { 'image_id':doc['image_id'], 'count': doc['count'] }
+		#app.logger.debug(like)
+		likes.append(like)
+
+	resp = jsonify(likes=likes)
+	app.logger.debug("response: " + resp.data)
+	return resp
 
 
-	#print sent
-	
-	#db = get_db()
-	#likes = db.likes.find_one()
-
-	#data = db.collection_names()
-	#app.logger.debug(data)
-
-	return 'ok'
-
-
-
+##
+## Helper function to figure out the time based on 
+## on the period passed to the leaderboard function. 
+## At this point it should be a valid period since it has been checked
+def gettimedelta(period):
+#24hrs, 36hrs, week, month, year'
+	if (period == '24hrs'):
+		return timedelta(days=1)
+	elif (period == '36hrs'): 
+		return timedelta(days=1, hours =12)
+	elif (period == 'week'):
+		return timedelta(days=7)
+	elif (period == 'month'):
+		return timedelta(days=30)
+	elif (period == 'year'):
+		return timedelta(days=365)
 
 ###
 ### Root Route, doesn't do anything. just make sure we are loaded

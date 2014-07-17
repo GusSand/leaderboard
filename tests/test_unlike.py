@@ -5,6 +5,13 @@ import leaderboard
 from flask import json, jsonify
 import random
 
+
+# tests needed for like:
+	# 1. bad params
+	# 2. image id not in the collection
+	# 3. remove from the db
+	# 4. decrease count
+
 class UnlikeTestCase(unittest.TestCase):
 
 	JSON 		= 'application/json'
@@ -19,12 +26,8 @@ class UnlikeTestCase(unittest.TestCase):
 		leaderboard.init_db()
 
 
-# tests needed for like:
-	# 1. bad params
-	# 2. image id not in the collection
-	# 3. remove from the db
-	# 4. decrease count
-
+	#	Test for an image that exists and has 
+	#   more than one like
 	def test_unlike_decrease_count(self):
 
 		# first like the image multiple times
@@ -53,6 +56,9 @@ class UnlikeTestCase(unittest.TestCase):
 		jdata = json.loads(resp.data)
 		self.assertEqual(jdata['image_count'], 2)
 
+
+	# Test the case where there is only one like
+	# so we would need to remove from the db. 
 	# to test this case we are gonna like
 	# an image once and then unlike it right 
 	# away. to assure there is no collisions
@@ -81,27 +87,21 @@ class UnlikeTestCase(unittest.TestCase):
 		self.assertEqual(jdata['image_count'], 0)
 
 
-
-
+	# Test for unliking an image that doesn't exist.
+	# return 304 which is unmodified so that the
+	# API caller knows. 
 	def test_unlike_invalid_image(self):
-		
 		mydata = json.dumps({'image':0, 'user':'123456'})
-
 		resp = self.app.post(self.UNLIKE_API, 
 			data = mydata, 
 			content_type = self.JSON)
-
-		#print str(resp.data)
 		self.assertEqual(resp.status_code, 304)
 
 
-
+	# Response should return a 400 since we are not 
+	# passing any json
 	def test_unlike_invalid_payload(self):
 		resp = self.app.post(self.UNLIKE_API)
-	
-		# Response should return a 400 since we are not 
-		# passing any json
-		#print ('Error: ' + str(resp.data))
 		assert 'invalid payload' in resp.data
 		self.assertEqual(resp.status_code, 400)
 
