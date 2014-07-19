@@ -19,10 +19,18 @@
 
 
 	Base URL: 
-		TODO: 
+		http://imageleaderboard.herokuapp.com/api/images/ 
+
+	API:
+
+	Like:
+
+	Unlike:
+
+	Leaderboard:
+		leaderboard?period=24hrs&k=10
 
 
-	usage: 
 	API Expects:
 
 
@@ -99,6 +107,9 @@ def init_db():
 ### Format for call: api/images/like
 ### body: {image:'imageid', user:'userid'}
 ### 
+### Using Curl: 
+### curl -d '{"user":"123", "image":"123"}' http://imageleaderboard.herokuapp.com/api/images/like --header "Content-Type:application/json"
+###
 @app.route("/api/images/like", methods=['POST'])
 def images_like():
 	
@@ -184,6 +195,9 @@ def images_like():
 ### Where: 
 ### - period must be one of: '24hrs', '36hrs', 'week', 'month', 'year'
 ### - k must be between 0 and 100
+###
+### ### Using Curl: 
+### curl -d '{"user":"123", "image":"123"}' http://imageleaderboard.herokuapp.com/api/images/unlike --header "Content-Type:application/json"
 ###
 @app.route("/api/images/unlike", methods=['POST'])
 def images_unlike():
