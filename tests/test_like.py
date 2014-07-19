@@ -26,7 +26,7 @@ class LeaderboardTestCase(unittest.TestCase):
 	def test_like_multiple_like(self):
 		image_id = random.randint(1, sys.maxint)
 		mydata = json.dumps({'image':image_id, 'user':'123456'})
-		count = 300
+		count = 3000
 		for x in range (0, count):
 			resp = self.app.post(self.LIKE_API, 
 				data = mydata, 

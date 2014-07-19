@@ -58,7 +58,6 @@ app = Flask(__name__)
 #
 ###############################################################
 
-
 ##
 ## Opens a new db connection if there's none for the current app context
 ## 
@@ -91,14 +90,14 @@ def init_db():
 #
 ###############################################################
 
-
-@app.errorhandler(400)
-def server_error():
-	return make_response(standard_response(None, 400, 'Sorry an Error Ocurred'), 400)
-
-
 ###
-###	Create or liking an Image
+###	Create or liking an Image:
+### Supports: POST
+### Expects: json with image and user. optional: date. Mainly for testing. 
+### Returns: image_id and count. HTTP 200 or 400
+###
+### Format for call: api/images/like
+### body: {image:'imageid', user:'userid'}
 ### 
 @app.route("/api/images/like", methods=['POST'])
 def images_like():
@@ -175,7 +174,17 @@ def images_like():
 	
 ###
 ###	Unliking an Image
-### 
+### Supports: POST
+### Expects: json with image and user. 
+### Returns: image_id and count. HTTP 200, 400 or 304 if not found
+###
+### Format for call: api/images/unlike
+### body: {image:'imageid', user:'userid'}
+###
+### Where: 
+### - period must be one of: '24hrs', '36hrs', 'week', 'month', 'year'
+### - k must be between 0 and 100
+###
 @app.route("/api/images/unlike", methods=['POST'])
 def images_unlike():
 	app.logger.debug('Entered images_unlike. Payload: ' )
@@ -245,6 +254,12 @@ def images_unlike():
 ### The API should provide a means of querying for ranked list of the top
 ### K images that have received the most likes in the following time periods: 
 ### last 24 hours, 36 hours, 1 week, 1 month, and 1 year.
+###
+### Format for call: api/images/leaderboard?period=year&k=10'
+###
+### Where: 
+### - period must be one of: '24hrs', '36hrs', 'week', 'month', 'year'
+### - k must be between 0 and 100
 ### 
 ### response:
 #   {
@@ -259,10 +274,6 @@ def images_unlike():
 # 		}
 # 	  ] 
 # 	}
-###
-###
-###	
-
 @app.route("/api/images/leaderboard", methods=['GET'])
 def images_leaderboard():
 	app.logger.debug('Entered images_leaderboard. Payload: ' )
@@ -291,7 +302,7 @@ def images_leaderboard():
 
 	# here we compute the appropiate period and ask from the database for the top likes in the daterange required
 	targetdate = datetime.datetime.utcnow() - gettimedelta(period)
-	cursor_likes = db.likes.find({"date_list" : {"$lt": targetdate}}).sort('count', pymongo.DESCENDING).limit(n)
+	cursor_likes = db.likes.find({"date_list" : {"$gt": targetdate}}).sort('count', pymongo.DESCENDING).limit(n)
 	#app.logger.debug("like_list")
 	likes = []
 	for doc in cursor_likes :
@@ -306,7 +317,7 @@ def images_leaderboard():
 
 
 ##
-## Helper function to figure out the time based on 
+## Helper function to figure out the timedelta based on 
 ## on the period passed to the leaderboard function. 
 ## At this point it should be a valid period since it has been checked
 def gettimedelta(period):

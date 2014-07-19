@@ -30,7 +30,7 @@ class LeaderboardTestCase(unittest.TestCase):
 
 
 	def test_get_top_k_likes(self):
-		resp = self.app.get('api/images/leaderboard?period=year&k=3')
+		resp = self.app.get('api/images/leaderboard?period=year&k=10')
 		self.assertEqual(resp.status_code, 200)
 		#jdata = json.loads(resp.data)
 		#self.assertEqual(jdata[''])
