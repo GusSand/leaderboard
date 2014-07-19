@@ -31,7 +31,8 @@ Using Curl:
 
 `curl -d '{"user":"123", "image":"123"}' http://imageleaderboard.herokuapp.com/api/images/like --header "Content-Type:application/json"
 `
-##** Unlike: **
+
+## **Unlike: **
 
 Unliking an Image
 
