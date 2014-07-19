@@ -17,13 +17,24 @@ class UnlikeTestCase(unittest.TestCase):
 	JSON 		= 'application/json'
 	LIKE_API 	 = 'api/images/like'
 	UNLIKE_API   = 'api/images/unlike'
-
+	teardown_id = None
+	db = None
 
 	def setUp(self):
 		self.app = leaderboard.app.test_client()
 		#print 'done with setup'
 		assert (self.app != None)
-		leaderboard.init_db()
+		self.db = leaderboard.init_db()
+
+
+	def tearDown(self):
+	# now remove the image data 
+		if (self.teardown_id != None):
+			self.db.likes.remove({'image_id' : self.teardown_id})
+			key = self.db.likes.find_one({'image_id': self.teardown_id})
+			self.assertEqual(key, None)
+			self.teardown_id = None
+
 
 
 	#	Test for an image that exists and has 
@@ -39,10 +50,12 @@ class UnlikeTestCase(unittest.TestCase):
 				data = mydata, 
 				content_type = self.JSON)
 
-		#print str(resp.data)
 		jdata = json.loads(resp.data)
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(jdata['image_count'], 3)
+
+		# now unlike to leave db clean
+		self.teardown_id = image_id
 
 
 		# now unlike once and make sure it's only two

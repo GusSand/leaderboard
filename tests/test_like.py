@@ -6,43 +6,65 @@ import random
 from flask import json, jsonify
 
 
-class LeaderboardTestCase(unittest.TestCase):
+# All the like test cases. 
+# After each test leave the db in 
+# in the same state as before. 
+# The tearDown method will do that. 
+class LikeTestCase(unittest.TestCase):
 
 	JSON 		= 'application/json'
 	LIKE_API 	 = 'api/images/like'
 	UNLIKE_API   = 'api/images/unlike'
-	LEADERBOARD_API = 'api/images/leaderboard'
+	teardown_id = None
+	db = None
 
 
 	def setUp(self):
 		self.app = leaderboard.app.test_client()
 		assert self.app != None
 		#self.app.config['TESTING'] = True
-		leaderboard.init_db()
+		self.db = leaderboard.init_db()
+
 	
+	def tearDown(self):
+	# now remove the image data 
+		if (self.teardown_id != None):
+			self.db.likes.remove({'image_id' : self.teardown_id})
+			key = self.db.likes.find_one({'image_id': self.teardown_id})
+			self.assertEqual(key, None)
+			self.teardown_id = None
+
+
 
 	# test liking an image multiple times
 	# check that response is appropiate count
 	def test_like_multiple_like(self):
 		image_id = random.randint(1, sys.maxint)
+		self.teardown_id = image_id
 		mydata = json.dumps({'image':image_id, 'user':'123456'})
-		count = 3000
+		count = 30
 		for x in range (0, count):
 			resp = self.app.post(self.LIKE_API, 
 				data = mydata, 
 				content_type = self.JSON)
+			self.assertEqual(resp.status_code, 200)
+
 		jdata = json.loads(resp.data)
-		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(jdata['image_count'], count)
+
+	
+
 
 
 	## simple test for like 
 	def test_like(self):
-		mydata = json.dumps({'image':'123444', 'user':'2345666'})
+		image_id = '123444'
+		mydata = json.dumps({'image':image_id, 'user':'2345666'})
 		resp = self.app.post(self.LIKE_API, 
 			data = mydata, 
 			content_type = self.JSON)
 		self.assertEqual(resp.status_code, 200)
+		self.teardown_id = image_id
 
 
 	# Test for passing invalid image id on the payload

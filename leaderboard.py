@@ -80,7 +80,7 @@ def init_db():
 	else:
 		conn = pymongo.Connection('localhost', 27017)
 		# app.logger.debug('got localhost connection to mongo' )	
-		db = conn['leaderboard-db3']
+		db = conn['leaderboard-db4']
 	return db
 
 
@@ -93,7 +93,7 @@ def init_db():
 ###
 ###	Create or liking an Image:
 ### Supports: POST
-### Expects: json with image and user. optional: date. Mainly for testing. 
+### Expects: json with image and user.
 ### Returns: image_id and count. HTTP 200 or 400
 ###
 ### Format for call: api/images/like
@@ -114,7 +114,7 @@ def images_like():
 	image = json.get('image')	
 	if (image == None):
 		return Response(status=400, response='invalid image id')
-	user  = request.get_json().get('user')
+	user  = json.get('user')
 	if (user == None):
 		return Response(status=400, response='invalid user id')
 
@@ -129,10 +129,10 @@ def images_like():
 	if (key is None):
 		# first time seen
 		app.logger.debug('inserting new entry in db' )
-
+	
 		like = {
 			'image_id' : image, 
-			'user_id' : user, 
+			'user_id' : user, 	
 			'date_list' : [datetime.datetime.utcnow()],
 			'count' : count	
 		}	
@@ -305,13 +305,31 @@ def images_leaderboard():
 	cursor_likes = db.likes.find({"date_list" : {"$gt": targetdate}}).sort('count', pymongo.DESCENDING).limit(n)
 	#app.logger.debug("like_list")
 	likes = []
+	needsSort = False
 	for doc in cursor_likes :
 		#app.logger.debug(doc)
-		like = { 'image_id':doc['image_id'], 'count': doc['count'] }
-		#app.logger.debug(like)
+		count = doc['count']
+
+		# if we have more than one date, we might need to change the count
+		# of likes for this period since not all of them migth be in our range
+		# just decrease for each one that is not in our range. If this
+		# happens we will have to sort
+		for date in doc['date_list']:
+			if date < targetdate:
+				needsSort = True
+				count = count - 1
+
+		like = {'image_id':doc['image_id'], 'count': count}
 		likes.append(like)
 
-	resp = jsonify(likes=likes)
+
+	# Only sort the list if it needs for perf
+	if (needsSort):		
+		sortedList = sorted(likes, key=lambda x: x['count'], reverse = True)
+	else:
+		sortedList = likes
+
+	resp = jsonify(likes=sortedList)
 	app.logger.debug("response: " + resp.data)
 	return resp
 
